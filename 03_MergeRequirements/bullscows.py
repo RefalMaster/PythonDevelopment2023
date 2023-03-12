@@ -1,16 +1,15 @@
 import random
+import argparse
+from urllib import request
+from collections import Counter
 
 def bullscows(guess: str, secret: str):
     if len(guess) != len(secret):
         print("Error: different sizes of guess and secret")
         return (-1, -1)
-    bulls, cows = 0, 0
-    for i, c in enumerate(guess):
-        if c == secret[i]:
-            bulls += 1
-        elif c in secret:
-            cows += 1
-    return bulls, cows
+    bulls = [g == s for g, s in zip(guess, secret)]
+    cows = Counter(guess) & Counter(secret)
+    return sum(bulls), sum(cows.values())
 
 def gameplay(ask: callable, inform: callable, words: list[str]):
     word = random.choice(words)
@@ -35,5 +34,19 @@ def ask(prompt: str, valid: list[str] = None):
 def inform(format_string: str, bulls: int, cows: int):
     print(format_string.format(bulls, cows))
 
-print(bullscows("ропот", "полип"))
-print(gameplay(ask, inform, ["ропот", "полип"]))
+parser = argparse.ArgumentParser()
+parser.add_argument("dictionary", type=str)
+parser.add_argument("length", nargs='?', default=5, type=int)
+
+args = parser.parse_args()
+
+if ":" not in args.dictionary:
+    with open(args.dictionary) as file:
+        words = file.read().split()
+        words = [i for i in words if len(i) == args.length]
+else:
+    words = request.urlopen(args.dictionary).read()
+    words = words.decode().split()
+    words = [i for i in words if len(i) == args.length]
+
+gameplay(ask, inform, words)
